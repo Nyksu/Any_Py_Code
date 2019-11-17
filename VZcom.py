@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.0.2
+код написан NykSu (c) нояюрь 2019.  v 0.0.3
 GitHub present
 '''
 
@@ -18,27 +18,25 @@ class KBHit:
         if os.name == 'nt':
             pass
 
-
     def set_normal_term(self):
         if os.name == 'nt':
             pass
-
 
     def getch(self):
         s = ''
         if os.name == 'nt':
             return msvcrt.getch().decode('utf-8')
 
-
     def kbhit(self):
         if os.name == 'nt':
             return msvcrt.kbhit()
 
 
-def get_WITS_date_time():
+def get_WITS_date_time(): # формат WITS строки времени и даты
     dat_str = ''
     tim_str = ''
     tim = time.localtime(time.time())
+    # создаём строку времени
     if len(str(tim[3])) == 1:
         tim_str = '0' + str(tim[3])
     else:
@@ -51,7 +49,7 @@ def get_WITS_date_time():
         tim_str += '0' + str(tim[5])
     else:
         tim_str += str(tim[5])
-
+    # создаём строку даты
     if len(str(tim[0])) == 4:
         dat_str = str(tim[0])[2::]
     if len(str(tim[1])) == 1:
@@ -62,11 +60,10 @@ def get_WITS_date_time():
         dat_str += '0' + str(tim[2])
     else:
         dat_str += str(tim[2])
-    
     return ('0105' + dat_str, '0106' + tim_str)
 
 
-def make_WITS_msg(record, sequence, deep, deep_d):
+def make_WITS_msg(record, sequence, deep, deep_d): # формирование пакета данных в формате WITS
     result = ['&&','0101Oil Hole 1','01020']
     result.extend(['0103' + str(record),'0104' + str(sequence)])
     result.extend(get_WITS_date_time())
@@ -76,8 +73,8 @@ def make_WITS_msg(record, sequence, deep, deep_d):
     return tuple(result)
 
 
-def push_to_com_port(num_port, data, end_str = '\r\n'):
-    result = False
+def push_to_com_port(num_port, data, end_str = '\r\n'): # отправка данных в COM-порт
+    result = False 
     if num_port == 0:
         return result
     try :
@@ -92,16 +89,18 @@ def push_to_com_port(num_port, data, end_str = '\r\n'):
     return result
 
 
-def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0):
+def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0): # главный цикл, ожидание коанд, отправка пакетов, расчёт инкриментов
     dp = 0
     kb = KBHit()
     pause = p
     print('Нажмите ESC для выхода из программы, для справки нажмите ---> h')
+
+    start = time.time()
     if tm == 0:
-        start = time.time()
+        result = ['', ds, dd, start, sequence]
     else:
-        start = tm
-    result = ['', ds, dd, start, sequence]
+        result = ['', ds, dd, tm, sequence]
+    
     while True:
         time.sleep(p/50)
         if de != 0 and ds >= de:
@@ -134,7 +133,7 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0):
     return result
 
 
-def print_help():
+def print_help(): # вывод на экран справки
     print('Краткая справка. Команды клавиш: *, /, d, +, -, h')
     print('"*" - увеличение временного интервала в 2 раза')
     print('"/" - уменьшение временного интервала в 2 раза')
@@ -176,30 +175,30 @@ if __name__ == "__main__":
     print_help()
     while True:
         res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, ['*', '/', 'd', '+', '-', 's', 'h'], time_str)
-        if type(res) != type([]):
+        if type(res) != type([]): 
             print('Ошибка!!..')
             break
-        if res[0] == '':
+        if res[0] == '': # автоматическое завершение программы по достижению конечной глубины
             print('Достигнута глубина (м)', deep_end)
             break
-        elif ord(res[0]) == 27:
+        elif ord(res[0]) == 27: # команда выхода из прораммы
             print('Работа программы прервана пользователем.')
             break
-        elif res[0] == '*':
+        elif res[0] == '*': # команда двукратного увеличения интервала времени
             pause += pause
             deep = res[1]
             deep_d = res[2]
             time_str = res[3]
             sequence = res[4]
             print('Интервал увеличен до: ', pause, ' сек')
-        elif res[0] == '/':
+        elif res[0] == '/':  # команда двукратного уменьшения интервала времени
             pause = pause / 2
             deep = res[1]
             deep_d = res[2]
             time_str = res[3]
             sequence = res[4]
             print('Интервал уменьшен до: ', pause, ' сек')
-        elif res[0] == 'd':
+        elif res[0] == 'd': # команда приостановки и корректирования глубины скважины
             time_str = 0
             deep = float(input('Введите корректировочную глубину скважины(м): '))
             if deep < res[2]:
@@ -210,26 +209,32 @@ if __name__ == "__main__":
             res[2] = float(input('Показания высоты подвеса долота верны? Введите 0 - верны или число для корректировки: '))
             if res[2] > 0:
                 deep_d = res[2]
-        elif res[0] == 's':
+        elif res[0] == 's': # команда приостановки и корректирования глубины долота
             time_str = 0
             deep = res[1]
             sequence = res[4]
             deep_d = float(input('Пауза в программе. Остановка или подъём долота. Введите корректировочную глубину долота(м): '))
-            print('Исправлена глубина. Новое значение глубины (м): ', deep)
-        elif res[0] == '+':
+            print('Исправлена глубина долота. Новое значение глубины (м): ', deep_d)
+            if deep_d > deep:
+                print('Долото ниже последнего уровня глубины скважины. Глубина скважины скорректируется на уровень (м): ', deep_d)
+        elif res[0] == '+': # команда двукратного увеличения шага погружения
             delta += delta
             deep = res[1]
-            time_str = res[2]
+            deep_d = res[2]
+            time_str = res[3]
             sequence = res[4]
+            print(res[1], res[2], res[3], res[4])
             print('Шаг глубины увеличен до (м): ', delta)
-        elif res[0] == '-':
+        elif res[0] == '-': # команда двукратного уменьшения шага погружения
             delta = delta / 2
             deep = res[1]
-            time_str = res[2]
+            deep_d = res[2]
+            time_str = res[3]
             sequence = res[4]
             print('Шаг глубины уменьшен до (м): ', delta)
-        elif res[0] == 'h':
+        elif res[0] == 'h': # команда вывода справки
             deep = res[1]
-            time_str = res[2]
+            deep_d = res[2]
+            time_str = res[3]
             sequence = res[4]
             print_help()
