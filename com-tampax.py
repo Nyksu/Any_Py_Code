@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.0.1
+код написан NykSu (c) нояюрь 2019.  v 0.0.2
 GitHub present
 '''
 
@@ -116,7 +116,7 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0):
             dp = p - (end - start)
             pause += dp 
             start = time.time()
-            if not push_to_com_port(num_port, make_WITS_msg(record, sequence, ds, dd), ''): # Передать значение в COM-порт (строка возможной корректировки)
+            if not push_to_com_port(num_port, make_WITS_msg(record, sequence, ds, dd)): # Передать значение в COM-порт (строка возможной корректировки)
                 print('Ошибка записи в COM-порт!!!')
                 break
             # print('Пакет успешно отправлен в порт COM%s' % num_port)
