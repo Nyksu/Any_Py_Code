@@ -76,7 +76,7 @@ def make_WITS_msg(record, sequence, deep, deep_d):
     return tuple(result)
 
 
-def push_to_com_port(num_port, data, end_str = '/r/n'):
+def push_to_com_port(num_port, data, end_str = '\r\n'):
     result = False
     if num_port == 0:
         return result
