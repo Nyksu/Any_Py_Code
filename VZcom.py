@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.0.4
+код написан NykSu (c) нояюрь 2019.  v 0.0.5
 GitHub present
 '''
 
@@ -67,9 +67,10 @@ def make_WITS_msg(record, sequence, deep, deep_d): # формирование п
     result = ['&&','0101Oil Hole 1','01020']
     result.extend(['0103' + str(record),'0104' + str(sequence)])
     result.extend(get_WITS_date_time())
+    result.append('0107')
     result.append('0108' + str(round(deep_d, 2))) # глубина долота
     result.append('0110' + str(round(deep, 2))) # глубина скважины
-    result.extend(['0113','0114','0117','0112','01410','0142','!!'])
+    result.extend(['0111','0113','0114','0117','0112','01410','0142','!!'])
     return tuple(result)
 
 
