@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.0.3
+код написан NykSu (c) нояюрь 2019.  v 0.0.4
 GitHub present
 '''
 
@@ -198,6 +198,27 @@ if __name__ == "__main__":
             time_str = res[3]
             sequence = res[4]
             print('Интервал уменьшен до: ', pause, ' сек')
+        elif res[0] == '+': # команда увеличения интервала времени на 2
+            pause += 2
+            deep = res[1]
+            deep_d = res[2]
+            time_str = res[3]
+            sequence = res[4]
+            print('Интервал увеличен до: ', pause, ' сек')
+        elif res[0] == '-': # команда уменьшения интервала времени на 2
+            if pause > 2:
+                pause = pause - 2
+            deep = res[1]
+            deep_d = res[2]
+            time_str = res[3]
+            sequence = res[4]
+            print('Интервал уменьшен до: ', pause, ' сек')
+        elif res[0] == 'h': # команда вывода справки
+            deep = res[1]
+            deep_d = res[2]
+            time_str = res[3]
+            sequence = res[4]
+            print_help()
         elif res[0] == 'd': # команда приостановки и корректирования глубины скважины
             time_str = 0
             deep = float(input('Введите корректировочную глубину скважины(м): '))
@@ -217,24 +238,3 @@ if __name__ == "__main__":
             print('Исправлена глубина долота. Новое значение глубины (м): ', deep_d)
             if deep_d > deep:
                 print('Долото ниже последнего уровня глубины скважины. Глубина скважины скорректируется на уровень (м): ', deep_d)
-        elif res[0] == '+': # команда двукратного увеличения шага погружения
-            delta += delta
-            deep = res[1]
-            deep_d = res[2]
-            time_str = res[3]
-            sequence = res[4]
-            print(res[1], res[2], res[3], res[4])
-            print('Шаг глубины увеличен до (м): ', delta)
-        elif res[0] == '-': # команда двукратного уменьшения шага погружения
-            delta = delta / 2
-            deep = res[1]
-            deep_d = res[2]
-            time_str = res[3]
-            sequence = res[4]
-            print('Шаг глубины уменьшен до (м): ', delta)
-        elif res[0] == 'h': # команда вывода справки
-            deep = res[1]
-            deep_d = res[2]
-            time_str = res[3]
-            sequence = res[4]
-            print_help()
