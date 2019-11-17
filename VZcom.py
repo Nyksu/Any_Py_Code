@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.0.6
+код написан NykSu (c) нояюрь 2019.  v 0.1.0
 GitHub NykSu
 '''
 
@@ -69,8 +69,9 @@ def make_WITS_msg(record, sequence, deep, deep_d): # формирование п
     result.extend(get_WITS_date_time())
     result.append('01070')
     result.append('0108' + str(round(deep_d, 2))) # глубина долота
+    result.append('01090')
     result.append('0110' + str(round(deep, 2))) # глубина скважины
-    result.extend(['01090','01110','0113','0114','0117','0112','01410','0142','!!'])
+    result.extend(['01110','0112','0113','0114','0117','01410','0142','!!'])
     return tuple(result)
 
 
@@ -245,6 +246,6 @@ The Program is for transferring auto-recording records in WITS format to COM-por
 Transfer is carried out to the port with the lowest number found in the system.
 ALWAYS put the keyboard in English mode !!!
 quick reference during program execution period - press h
-This code was written by NykSu (c) November 2019. v 0.0.6
+This code was written by NykSu (c) November 2019. v 0.1.0
 GitHub NykSu
 '''
