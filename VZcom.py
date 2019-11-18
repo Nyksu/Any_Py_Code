@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.1.0
+код написан NykSu (c) нояюрь 2019.  v 0.1.1
 GitHub NykSu
 '''
 
@@ -91,13 +91,26 @@ def push_to_com_port(num_port, data, end_str = '\r\n'): # отправка да�
     return result
 
 
-def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0): # главный цикл, ожидание коанд, отправка пакетов, расчёт инкриментов
+def write_log_to_file(data, filename):
+    txt = ''
+    if os.path.exists(filename):
+        with open(filename, "r") as fSQL:
+            txt = fSQL.read()
+    for st in data:
+        txt += st + '\r\n'
+    with open(filename, "w") as fSQL:
+        fSQL.write(txt)
+
+
+def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, log_f_nam = ''): # главный цикл, ожидание коанд, отправка пакетов, расчёт инкриментов
     dp = 0
     kb = KBHit()
     pause = p
     print('Нажмите ESC для выхода из программы, для справки нажмите ---> h')
-
+    need_log = False
     start = time.time()
+    data = None
+
     if tm == 0:
         result = ['', ds, dd, start, sequence]
     else:
@@ -117,20 +130,29 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0): #
             dp = p - (end - start)
             pause += dp 
             start = time.time()
-            if not push_to_com_port(num_port, make_WITS_msg(record, sequence, ds, dd)): # Передать значение в COM-порт (строка возможной корректировки)
+            data = make_WITS_msg(record, sequence, ds, dd)
+            if not push_to_com_port(num_port, data): # Передать значение в COM-порт (строка возможной корректировки)
                 print('Ошибка записи в COM-порт!!!')
                 break
-            # print('Пакет успешно отправлен в порт COM%s' % num_port)
+            # Пакет успешно отправлен в порт COM
+            if need_log and log_f_nam != '':
+                # запись лога
+                write_log_to_file(data, log_f_nam)
             sequence += 1
         if kb.kbhit():
             c = kb.getch()
             if ord(c) != 0:
                 if ord(c) == 27 or c in chars:  # ESC ord(c) == 27
-                    result[0] = c
-                    result[1] = ds
-                    result[2] = dd
-                    result[4] = sequence
-                    break
+                    if c != 'l':
+                        need_log = False
+                        result[0] = c
+                        result[1] = ds
+                        result[2] = dd
+                        result[4] = sequence
+                        break
+                    else:
+                        need_log = True
+                        print('Подключаем лог-файл.')
     kb.set_normal_term()
     return result
 
@@ -166,6 +188,9 @@ if __name__ == "__main__":
     if num_port > 0:
         print('Передача пакетов идёт на порт COM%s' % num_port)
 
+    
+    path_to_app = os.getcwd()
+    file_log_name = os.path.join(path_to_app, 'vzcom_log.txt')
     time_str = 0
     sequence = 1
     deep = float(input('Введите начальную глубину скважины (м): '))
@@ -175,8 +200,9 @@ if __name__ == "__main__":
     pause = float(input('Введите интервал времени в секудах: '))
     record = int(input('Введите номер записи: '))
     print_help()
+    
     while True:
-        res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, ['*', '/', 'd', '+', '-', 's', 'h'], time_str)
+        res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, ['*', '/', 'd', '+', '-', 's', 'h', 'l'], time_str, file_log_name)
         if type(res) != type([]): 
             print('Ошибка!!..')
             break
@@ -246,6 +272,6 @@ The Program is for transferring auto-recording records in WITS format to COM-por
 Transfer is carried out to the port with the lowest number found in the system.
 ALWAYS put the keyboard in English mode !!!
 quick reference during program execution period - press h
-This code was written by NykSu (c) November 2019. v 0.1.0
+This code was written by NykSu (c) November 2019. v 0.1.1
 GitHub NykSu
 '''
