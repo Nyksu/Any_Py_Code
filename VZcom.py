@@ -3,7 +3,7 @@
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.1.1
+код написан NykSu (c) нояюрь 2019.  v 0.1.2
 GitHub NykSu
 '''
 
@@ -91,18 +91,19 @@ def push_to_com_port(num_port, data, end_str = '\r\n'): # отправка да�
     return result
 
 
-def write_log_to_file(data, filename):
+def write_log_to_file(data, filename, rewrite = False):
     txt = ''
     if os.path.exists(filename):
-        with open(filename, "r") as fSQL:
-            txt = fSQL.read()
+        if not rewrite :
+            with open(filename, "r") as fSQL:
+                txt = fSQL.read()
     for st in data:
-        txt += st + '\r\n'
+        txt += st + '\n'
     with open(filename, "w") as fSQL:
         fSQL.write(txt)
 
 
-def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, log_f_nam = ''): # главный цикл, ожидание коанд, отправка пакетов, расчёт инкриментов
+def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, log_f_nam = '', data_file = ''): # главный цикл, ожидание команд, отправка пакетов, расчёт инкриментов
     dp = 0
     kb = KBHit()
     pause = p
@@ -135,6 +136,8 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, lo
                 print('Ошибка записи в COM-порт!!!')
                 break
             # Пакет успешно отправлен в порт COM
+            if data_file != '': # запись глубины в файл
+                write_log_to_file([time.strftime('%d.%m.%Y %H.%M.%S', time.localtime(end)) + ' ' + str(round(ds, 2))], data_file)
             if need_log and log_f_nam != '':
                 # запись лога
                 write_log_to_file(data, log_f_nam)
@@ -191,6 +194,7 @@ if __name__ == "__main__":
     
     path_to_app = os.getcwd()
     file_log_name = os.path.join(path_to_app, 'vzcom_log.txt')
+    data_file = os.path.join(path_to_app, 'vzcom_depth.txt')
     time_str = 0
     sequence = 1
     deep = float(input('Введите начальную глубину скважины (м): '))
@@ -199,10 +203,18 @@ if __name__ == "__main__":
     deep_end = float(input('Введите конечную глубину (0 - нет ограничений)(м): '))
     pause = float(input('Введите интервал времени в секудах: '))
     record = int(input('Введите номер записи: '))
+    if '0' != input('Введите 0, если необходимо сохранать глубину в файл: '):
+        data_file = ''
+    else:
+        print('Запись данных глубины будет вестись в файл: ' + data_file)
+        if os.path.exists(data_file):
+            if '0' == input('Файл существует. Для обнуления файла введите 0: '):
+                write_log_to_file([''], data_file, rewrite = True)
+    print('----------------------------------------')
     print_help()
     
     while True:
-        res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, ['*', '/', 'd', '+', '-', 's', 'h', 'l'], time_str, file_log_name)
+        res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, ['*', '/', 'd', '+', '-', 's', 'h', 'l'], time_str, file_log_name, data_file)
         if type(res) != type([]): 
             print('Ошибка!!..')
             break
