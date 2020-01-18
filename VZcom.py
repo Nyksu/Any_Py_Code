@@ -1,9 +1,10 @@
-'''
+title = '''
+VZcom
 Программа для передачи в COM-порт  автоинкриментных записей в формате WITS
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) нояюрь 2019.  v 0.1.2
+код написан NykSu (c) январь 2020.  v 0.1.3
 GitHub NykSu
 '''
 
@@ -63,15 +64,25 @@ def get_WITS_date_time(): # формат WITS строки времени и д�
     return ('0105' + dat_str, '0106' + tim_str)
 
 
-def make_WITS_msg(record, sequence, deep, deep_d): # формирование пакета данных в формате WITS
+def make_WITS_msg(record, sequence, deep, deep_d, res_str_WITS): # формирование пакета данных в формате WITS
     result = ['&&','0101Oil Hole 1','01020']
     result.extend(['0103' + str(record),'0104' + str(sequence)])
     result.extend(get_WITS_date_time())
-    result.append('01070')
+    result.append('01070.0')
     result.append('0108' + str(round(deep_d, 2))) # глубина долота
-    result.append('01090')
+    result.append('01090.0')
     result.append('0110' + str(round(deep, 2))) # глубина скважины
-    result.extend(['01110','0112','0113','0114','0117','01410','0142','!!'])
+    if res_str_WITS['0112']:
+        result.append('0112' + str(- round(deep, 2))) # вертикаль скважины
+    if res_str_WITS['0113']:
+        result.append('011310.0')
+    if res_str_WITS['0114']:
+        result.append('01140.0')
+    if res_str_WITS['0115']:
+        result.append('0115' + str(round(deep_d - 500, 2))) # глубина ТВД
+    if res_str_WITS['0117']:
+        result.append('011720.0')
+    result.extend(['!!','66'])
     return tuple(result)
 
 
@@ -103,7 +114,8 @@ def write_log_to_file(data, filename, rewrite = False):
         fSQL.write(txt)
 
 
-def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, log_f_nam = '', data_file = ''): # главный цикл, ожидание команд, отправка пакетов, расчёт инкриментов
+def tornado(ds, dd, d, de, p, record, sequence, num_port, res_str_WITS, chars = [], tm = 0, log_f_nam = '', data_file = ''): 
+    # главный цикл, ожидание команд, отправка пакетов, расчёт инкриментов
     dp = 0
     kb = KBHit()
     pause = p
@@ -131,7 +143,7 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, lo
             dp = p - (end - start)
             pause += dp 
             start = time.time()
-            data = make_WITS_msg(record, sequence, ds, dd)
+            data = make_WITS_msg(record, sequence, ds, dd, res_str_WITS)
             if not push_to_com_port(num_port, data): # Передать значение в COM-порт (строка возможной корректировки)
                 print('Ошибка записи в COM-порт!!!')
                 break
@@ -159,9 +171,20 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, chars = [], tm = 0, lo
     kb.set_normal_term()
     return result
 
+def restrict_WITS_str():
+    result = dict.fromkeys(['0112', '0113', '0114', '0115', '0116', '0117'], True)
+    print('Введите через пробел исключаемые строки из последовательности  WITS')
+    str_inp = input('в диапазоне 0112 - 0117 или нажмите ENTER:')
+    if len(str_inp) > 0:
+        strs = str_inp.split()
+        if len(strs) > 0:
+            for ss in strs:
+                result[ss] = False
+    return result
+
 
 def print_help(): # вывод на экран справки
-    print('Краткая справка. Команды клавиш: *, /, d, +, -, h')
+    print('Краткая справка. Команды клавиш: *, /, d, +, -, s, h')
     print('"*" - увеличение временного интервала в 2 раза')
     print('"/" - уменьшение временного интервала в 2 раза')
     print('"d" - измнение (корректировка) глубины')
@@ -172,7 +195,7 @@ def print_help(): # вывод на экран справки
 
 
 if __name__ == "__main__":
-
+    print(title)
     found = False 
     num_port = 0
     for i in range(256) :
@@ -203,6 +226,7 @@ if __name__ == "__main__":
     deep_end = float(input('Введите конечную глубину (0 - нет ограничений)(м): '))
     pause = float(input('Введите интервал времени в секудах: '))
     record = int(input('Введите номер записи: '))
+    restrict__WITS__str = restrict_WITS_str()
     if '0' != input('Введите 0, если необходимо сохранать глубину в файл: '):
         data_file = ''
     else:
@@ -214,7 +238,8 @@ if __name__ == "__main__":
     print_help()
     
     while True:
-        res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, ['*', '/', 'd', '+', '-', 's', 'h', 'l'], time_str, file_log_name, data_file)
+        res = tornado(deep, deep_d, delta, deep_end, pause, record, sequence, num_port, 
+            restrict__WITS__str, ['*', '/', 'd', '+', '-', 's', 'h', 'l'], time_str, file_log_name, data_file)
         if type(res) != type([]): 
             print('Ошибка!!..')
             break
@@ -284,6 +309,6 @@ The Program is for transferring auto-recording records in WITS format to COM-por
 Transfer is carried out to the port with the lowest number found in the system.
 ALWAYS put the keyboard in English mode !!!
 quick reference during program execution period - press h
-This code was written by NykSu (c) November 2019. v 0.1.1
+This code was written by NykSu (c) January 2019. v 0.1.3
 GitHub NykSu
 '''
