@@ -4,7 +4,7 @@ VZcom
 Передача ведётся в порт с наименьшим номером, найденный в системе.
 ОБЯЗАТЕЛЬНО переведите клавиатуру в режим английского языка!!!
 краткая справка в периуд исполнения программы - нажмите h
-код написан NykSu (c) январь 2020.  v 0.1.3
+код написан NykSu (c) январь 2020.  v 0.2.0
 GitHub NykSu
 '''
 
@@ -65,24 +65,42 @@ def get_WITS_date_time(): # формат WITS строки времени и д�
 
 
 def make_WITS_msg(record, sequence, deep, deep_d, res_str_WITS): # формирование пакета данных в формате WITS
-    result = ['&&','0101Oil Hole 1','01020']
-    result.extend(['0103' + str(record),'0104' + str(sequence)])
-    result.extend(get_WITS_date_time())
-    result.append('01070.0')
-    result.append('0108' + str(round(deep_d, 2))) # глубина долота
-    result.append('01090.0')
-    result.append('0110' + str(round(deep, 2))) # глубина скважины
-    if res_str_WITS['0112']:
+    result = ['&&']
+    if res_str_WITS['01']:
+        result.append('0101Oil Hole 1')
+    if res_str_WITS['02']:
+        result.append('01020.0')    
+    # result.extend(['0103' + str(record),'0104' + str(sequence)])
+    if res_str_WITS['04']:
+        result.append('0103' + str(record))
+    if res_str_WITS['04']:
+        result.append('0104' + str(sequence))
+    ddt = get_WITS_date_time()
+    if res_str_WITS['05']:
+        result.append(ddt[0])
+    if res_str_WITS['06']:
+        result.append(ddt[1])
+    if res_str_WITS['07']:
+        result.append('01070.0')
+    if res_str_WITS['08']:
+        result.append('0108' + str(round(deep_d, 2))) # глубина долота
+    if res_str_WITS['09']:
+        result.append('01090.0')
+    if res_str_WITS['10']:
+        result.append('0110' + str(round(deep, 2))) # глубина скважины
+    if res_str_WITS['12']:
         result.append('0112' + str(- round(deep, 2))) # вертикаль скважины
-    if res_str_WITS['0113']:
+    if res_str_WITS['13']:
         result.append('011310.0')
-    if res_str_WITS['0114']:
+    if res_str_WITS['14']:
         result.append('01140.0')
-    if res_str_WITS['0115']:
+    if res_str_WITS['15']:
         result.append('0115' + str(round(deep_d - 500, 2))) # глубина ТВД
-    if res_str_WITS['0117']:
+    if res_str_WITS['17']:
         result.append('011720.0')
-    result.extend(['!!','66'])
+    result.append('!!')
+    if res_str_WITS['66']:
+        result.append('66')
     return tuple(result)
 
 
@@ -171,16 +189,30 @@ def tornado(ds, dd, d, de, p, record, sequence, num_port, res_str_WITS, chars = 
     kb.set_normal_term()
     return result
 
-def restrict_WITS_str():
-    result = dict.fromkeys(['0112', '0113', '0114', '0115', '0116', '0117'], True)
-    print('Введите через пробел исключаемые строки из последовательности  WITS')
-    str_inp = input('в диапазоне 0112 - 0117 или нажмите ENTER:')
-    if len(str_inp) > 0:
-        strs = str_inp.split()
-        if len(strs) > 0:
-            for ss in strs:
-                result[ss] = False
-    return result
+def restrict_WITS_str(str_dict_saved = ''):
+    result = dict.fromkeys(['01','02','03','04','05','06','07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '66'], False)
+    print('Выбор строк последовательности WITS для тансляции')
+    if str_dict_saved != '':
+        print('Сохранённая последовательность строк: ', str_dict_saved)
+        print('Введите через пробел альтернативные строки последовательности')
+    else:
+        print('В конфигурации нет последовательности. Введите через пробел строки для трансляции')
+    str_inp = input('в диапазоне 01 - 17 (66) или нажмите ENTER :')
+    if len(str_inp) == 0:
+        str_inp = str_dict_saved
+    strs = str_inp.split()
+    nams = result.keys()
+    new_str = ''
+    if len(strs) > 0:
+        for ss in strs:
+            if ss in nams:
+                if new_str == '':
+                    new_str = ss
+                else:
+                    new_str += ' ' + ss
+                result[ss] = True
+    print('Выбраны строки последовательности для трансляции: ', new_str)
+    return [result, new_str]
 
 
 def print_help(): # вывод на экран справки
@@ -218,6 +250,7 @@ if __name__ == "__main__":
     path_to_app = os.getcwd()
     file_log_name = os.path.join(path_to_app, 'vzcom_log.txt')
     data_file = os.path.join(path_to_app, 'vzcom_depth.txt')
+    config_file = os.path.join(path_to_app, 'vzcom_conf.txt')
     time_str = 0
     sequence = 1
     deep = float(input('Введите начальную глубину скважины (м): '))
@@ -226,7 +259,18 @@ if __name__ == "__main__":
     deep_end = float(input('Введите конечную глубину (0 - нет ограничений)(м): '))
     pause = float(input('Введите интервал времени в секудах: '))
     record = int(input('Введите номер записи: '))
-    restrict__WITS__str = restrict_WITS_str()
+    
+    WITS_conf_txt = ''
+    # Читаем конфигурацию последовательности строк WITS для трансляции или устанавливаем альтернативную последовательность
+    if os.path.exists(config_file):
+        with open(config_file, "r") as fWITS_conf:
+                WITS_conf_txt = fWITS_conf.read()
+    restrict_WITS = restrict_WITS_str(WITS_conf_txt)
+    restrict__WITS__str = restrict_WITS[0]
+    if restrict_WITS[1] != WITS_conf_txt:
+        with open(config_file, "w") as fWITS_conf:
+                fWITS_conf.write(restrict_WITS[1])
+    
     if '0' != input('Введите 0, если необходимо сохранать глубину в файл: '):
         data_file = ''
     else:
@@ -309,6 +353,6 @@ The Program is for transferring auto-recording records in WITS format to COM-por
 Transfer is carried out to the port with the lowest number found in the system.
 ALWAYS put the keyboard in English mode !!!
 quick reference during program execution period - press h
-This code was written by NykSu (c) January 2019. v 0.1.3
+This code was written by NykSu (c) January 2020. v 0.2.0
 GitHub NykSu
 '''
